@@ -3173,6 +3173,11 @@ Home theater and wine cellar on the lower level
       var fileName = slugify(state.title) + ".pdf";
       var sizeBytes = 0;
 
+      // FIX: html2pdf clones this node, and the clone must not stay off-screen or the PDF renders blank
+      node.style.position = "static";
+      node.style.left = "auto";
+      node.style.top = "auto";
+
       var options = {
         margin: 0,
         filename: fileName,
