@@ -2728,7 +2728,7 @@ Home theater and wine cellar on the lower level
 
     var slug = slugify(state.title);
     document.getElementById("pdfFileName").textContent = slug + ".pdf";
-    document.getElementById("publishLinkText").textContent = "listly.app/l/" + slug;
+    document.getElementById("publishLinkText").textContent = location.host + "/l/" + slug;
   }
 
   function bindFieldInputs(){
@@ -3359,7 +3359,7 @@ Home theater and wine cellar on the lower level
     setTimeout(async function(){
       var savedListing = await saveListingToSupabase();
       if(savedListing && savedListing.slug){
-        document.getElementById("publishLinkText").textContent = "listly.app/l/" + savedListing.slug;
+        document.getElementById("publishLinkText").textContent = location.host + "/l/" + savedListing.slug;
       }
       await refreshListingsCount();
       loader.style.display = "none";
@@ -3749,6 +3749,36 @@ Home theater and wine cellar on the lower level
   updateAuthHeaderUI();
   updateUsageUI();
   render();
+
+  // Public listing page: /l/<slug> shows only the brochure
+  var publicMatch = location.pathname.match(/^\/l\/([^\/]+)\/?$/);
+  if(publicMatch){
+    (async function(){
+      var shell = document.querySelector(".app-shell");
+      if(shell){ shell.style.display = "none"; }
+      var wrap = document.createElement("div");
+      wrap.style.cssText = "max-width:440px;margin:0 auto;padding:16px;";
+      wrap.innerHTML = '<div id="publicMsg" style="color:#ccc;text-align:center;padding:60px 0;font-family:sans-serif;">Loading listing...</div>';
+      document.body.appendChild(wrap);
+      var res = await supabaseClient.from("listings").select("*").eq("slug", decodeURIComponent(publicMatch[1])).maybeSingle();
+      if(res.error || !res.data){
+        console.error("Public listing error:", res.error);
+        document.getElementById("publicMsg").textContent = "This listing was not found.";
+        return;
+      }
+      var d = res.data;
+      state.template = d.template || state.template;
+      state.title = d.title; state.price = d.price; state.location = d.location;
+      state.beds = d.beds; state.baths = d.baths; state.sqft = d.sqft;
+      state.highlights = d.highlights; state.image = d.image_url || "";
+      state.agentName = d.agent_name; state.agentPhone = d.agent_phone; state.agentEmail = d.agent_email;
+      render();
+      var b = document.getElementById("brochure");
+      wrap.innerHTML = "";
+      wrap.appendChild(b);
+      document.title = state.title + " | Listly";
+    })();
+  }
 
   supabaseClient.auth.onAuthStateChange(function(event, session){
     handleAuthStateChange(session);
